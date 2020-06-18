@@ -60,7 +60,8 @@ it('does not try to kill processes already dead', () => {
     createWithConditions(['failure']).handle(commands);
     commands[0].close.next(1);
 
-    expect(logger.logGlobalEvent).not.toHaveBeenCalled();
+    expect(logger.logGlobalEvent).toHaveBeenCalledTimes(1);
+    expect(logger.logGlobalEvent).toHaveBeenCalledWith('Sending SIGTERM to other processes..');
     expect(commands[0].kill).not.toHaveBeenCalled();
-    expect(commands[1].kill).not.toHaveBeenCalled();
+    expect(commands[1].kill).toHaveBeenCalled();
 });

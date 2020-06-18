@@ -13,8 +13,14 @@ beforeEach(() => {
     controller = new KillOnSignal({ process });
 });
 
+let newCommands;
+
+function subscribe() {
+    newCommands.map(command => command.close.subscribe(() => {}));
+}
+
 it('returns commands that keep non-close streams from original commands', () => {
-    const newCommands = controller.handle(commands);
+    newCommands = controller.handle(commands);
     newCommands.forEach((newCommand, i) => {
         expect(newCommand.close).not.toBe(commands[i].close);
         expect(newCommand.error).toBe(commands[i].error);
@@ -24,7 +30,7 @@ it('returns commands that keep non-close streams from original commands', () => 
 });
 
 it('returns commands that map SIGINT to exit code 0', () => {
-    const newCommands = controller.handle(commands);
+    newCommands = controller.handle(commands);
     expect(newCommands).not.toBe(commands);
     expect(newCommands).toHaveLength(commands.length);
 
@@ -40,7 +46,7 @@ it('returns commands that map SIGINT to exit code 0', () => {
 });
 
 it('returns commands that keep non-SIGINT exit codes', () => {
-    const newCommands = controller.handle(commands);
+    newCommands = controller.handle(commands);
     expect(newCommands).not.toBe(commands);
     expect(newCommands).toHaveLength(commands.length);
 
@@ -52,28 +58,32 @@ it('returns commands that keep non-SIGINT exit codes', () => {
 });
 
 it('kills all commands on SIGINT', () => {
-    controller.handle(commands);
+    expect(process.listenerCount('SIGINT')).toBe(0);
+    newCommands = controller.handle(commands);
+    subscribe();
     process.emit('SIGINT');
 
-    expect(process.listenerCount('SIGINT')).toBe(1);
+    expect(process.listenerCount('SIGINT')).toBe(0);
     expect(commands[0].kill).toHaveBeenCalledWith('SIGINT');
     expect(commands[1].kill).toHaveBeenCalledWith('SIGINT');
 });
 
 it('kills all commands on SIGTERM', () => {
-    controller.handle(commands);
+    newCommands = controller.handle(commands);
+    subscribe();
     process.emit('SIGTERM');
 
-    expect(process.listenerCount('SIGTERM')).toBe(1);
+    expect(process.listenerCount('SIGTERM')).toBe(0);
     expect(commands[0].kill).toHaveBeenCalledWith('SIGTERM');
     expect(commands[1].kill).toHaveBeenCalledWith('SIGTERM');
 });
 
 it('kills all commands on SIGHUP', () => {
-    controller.handle(commands);
+    newCommands = controller.handle(commands);
+    subscribe();
     process.emit('SIGHUP');
 
-    expect(process.listenerCount('SIGHUP')).toBe(1);
+    expect(process.listenerCount('SIGHUP')).toBe(0);
     expect(commands[0].kill).toHaveBeenCalledWith('SIGHUP');
     expect(commands[1].kill).toHaveBeenCalledWith('SIGHUP');
 });
